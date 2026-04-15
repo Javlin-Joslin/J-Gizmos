@@ -1,9 +1,10 @@
-extends JGizmo
-class_name JGizmo_2D
+extends J_Gizmo_Single
+## Resource class used by the J-Gizmo plugin to draw and calculate the positions of gizmos in 2D space. Pass this resource from a "setup_gizmos" function within a CanvasItem node to draw it.
+class_name J_Gizmo_Single2D
 
-## Static Constructor.
-static func new_gizmo( pluginNode : EditorPlugin, ownerNode : Node ) -> JGizmo_2D:
-    var newGizmo = JGizmo_2D.new()
+## Static Constructor to call in the "setup_gizmos" function. Pass in the "gizmo_master" arguement as the pluginNode. Recommend using the "quick_setup" function after creating the gizmo to set up the undo/redo and onRelease functions.
+static func new_gizmo( pluginNode : EditorPlugin, ownerNode : Node ) -> J_Gizmo_Single2D:
+    var newGizmo = J_Gizmo_Single2D.new()
     newGizmo.plugin = pluginNode
     newGizmo.owner = ownerNode
     return( newGizmo )
@@ -71,7 +72,7 @@ func get_display_position_from_position( givenPosition : Vector2 ) -> Vector2:
 
     return( calculatedPosition )
 
-
+# todo - check double check the rotation functionality.
 func get_position_from_viewport_position( viewportPosition : Vector2 ) -> Vector2:
     var calculatedPosition : Vector2
     var ownerPosRot : Array = get_owner_pos_and_rot()
@@ -80,8 +81,8 @@ func get_position_from_viewport_position( viewportPosition : Vector2 ) -> Vector
     if ownerPosRot.is_empty():
         return( Vector2.ZERO )
 
-    var ownerPos : Vector2 = ownerPosRot[0]
-    ownerRotation = ownerPosRot[1]
+    var ownerPos : Vector2 = ownerPosRot[ OWNER_POS_INDEX ]
+    ownerRotation = ownerPosRot[ OWNER_ROT_INDEX ]
 
     calculatedPosition = viewportPosition - OFFSET * gizmoOffsetVector.rotated( ownerRotation )
 
@@ -97,8 +98,11 @@ func get_position_from_viewport_position( viewportPosition : Vector2 ) -> Vector
 
     return( calculatedPosition )
 
+
+const OWNER_POS_INDEX : int = 0
+const OWNER_ROT_INDEX : int = 1
 ## Gets the global position and rotation of the gizmo's owner.[br]
-## Format : [ global_position, global_rotation ] [br]
+## Format : [ global_position, global_rotation ] | Shorthands : OWNER_POS_INDEX, OWNER_ROT_INDEX [br]
 ## Returns an empty array if the owner is not of type Node2D or Control, and prints an error to the console.
 func get_owner_pos_and_rot() -> Array:
     if owner is Node2D:
@@ -108,7 +112,7 @@ func get_owner_pos_and_rot() -> Array:
         ])
     elif owner is Control:
         return([
-            owner.get_global_rect().position,
+            owner.get_global_position(),
             owner.get_global_transform().get_rotation()
         ])
     else:

@@ -3,7 +3,7 @@ extends EditorPlugin
 class_name J_Gizmo_Master
 
 var gizmos : Array = []
-var grabbedGizmo : JGizmo = null
+var grabbedGizmo : J_Gizmo = null
 
 func _enter_tree():
     self.name = 'J_Gizmo_Master'
@@ -14,8 +14,14 @@ func _handles( obj ):
     grabbedGizmo = null
 
     for node in selection:
-        if node.get('use_gizmos'):
-            gizmos += node.setup_gizmos( self )
+        if node.get('gizmos'):
+            for gizmo in node.gizmos:
+                if gizmo == null:
+                    continue
+                gizmo.plugin = self
+                gizmo.owner = node
+                gizmos.append( gizmo )
+            # gizmos += node.setup_gizmos( self )
     
     if gizmos.size() > 0:
         return(true)
@@ -32,6 +38,6 @@ func _forward_canvas_gui_input(event) -> bool:
     
     return( false )
 
-func _forward_canvas_draw_over_viewport(viewport_control):
+func _forward_canvas_draw_over_viewport(viewport_control) -> void:
     for gizmo in gizmos:
-        gizmo._draw_on_canvas(viewport_control)
+        gizmo._on_canvas_draw_over_viewport(viewport_control)

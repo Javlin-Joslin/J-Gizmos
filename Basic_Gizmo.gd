@@ -1,15 +1,9 @@
 @tool
-extends Resource
-class_name JGizmo
+extends J_Gizmo2D
 
-const OFFSET : float = 16.0
-const SIZE : float = 5.0
+## Todo : add class docu comment
+class_name J_Gizmo_Single
 
-## Reference to the J-Gizmo plugin's EditorPlugin node. Set automatically when the gizmo is created.
-var plugin : EditorPlugin
-
-
-var owner : Node
 ## Position of the gizmo in the owner node's local space. Set this to move the gizmo.
 var position : Vector2 = Vector2.ZERO
 ## Gizmo's position in the viewport, calculated from the owner's position and the viewport's transform. Updated automatically.
@@ -17,7 +11,7 @@ var displayPosition : Vector2 = Vector2.ZERO
 ## Used to store the gizmo's position when it is grabbed, for use in undo/redo operations. Updated automatically.
 var _oldPosition : Vector2 = Vector2.ZERO
 
-var gizmoSize : float = SIZE
+var gizmoSize : float = 5.0
 var gizmoOutline : float = 1.0
 var gizmoOutlineActive : float = 3.0
 ## Inner color of gizmo.
@@ -81,7 +75,6 @@ func quick_setup( dragFunc : String, undoFunc : String, redoFunc : String, given
     actionName = givenName
 
 #region Input
-## Handles input events forwarded from the plugin. This function controls the interaction of the gizmo with mouse events in the viewport.
 func _on_canvas_gui_input(event) -> bool:
     match _state:
         STATES.DEFAULT:
@@ -120,6 +113,7 @@ func _on_canvas_gui_input(event) -> bool:
             
             elif event is InputEventMouseButton:
                 match event.button_index:
+                    # Cancel the drag with a right-click, which will call the undo function and return the gizmo to its original position.
                     MouseButton.MOUSE_BUTTON_RIGHT when event.pressed == true:
                         plugin.grabbedGizmo = null
                         if not _try_using( overrideCancel ):
@@ -131,7 +125,8 @@ func _on_canvas_gui_input(event) -> bool:
                         
                         _update_state( STATES.DEFAULT, onRelease )
                         return( true )
-                            
+                    
+                    # Finalize the drag when left click is released, which will call the onRelease function and set up the undo/redo actions in the editor's undo/redo stack.
                     MouseButton.MOUSE_BUTTON_LEFT when event.pressed == false:
                         _update_state( STATES.DEFAULT, onRelease )
                         plugin.grabbedGizmo = null
@@ -170,8 +165,7 @@ func _update_state( newState : STATES, triggeredFunc : String ) -> void:
 
 
 #region Drawing
-## Handles drawing the gizmo on the viewport. This function is called from the plugin and controls how the gizmo is drawn.
-func _draw_on_canvas( viewport_control ) -> void:
+func _on_canvas_draw_over_viewport( viewport_control ) -> void:
     if overrideDraw == '':
         _draw_gizmo( viewport_control )
     elif owner.has_method( overrideDraw ):
