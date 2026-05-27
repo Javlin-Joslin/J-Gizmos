@@ -13,10 +13,35 @@ var canvas : Gizmo_Canvas = null :
     set(inp):
         canvas = inp
         canvas_changed.emit( inp )
-## Reference to the object that the gizmo get's all that contain's all the Undo Redo functions and also used as the reference node if referenceNode is not set and the owner is a CanvasItem. Set automatically by the plugin.
-var owner = null
-## An Optional variable that, when set, makes the gizmo use the position and rotation of the given node as a reference instead of the owner. If the this variable is unset and the owner is a CanvasItem, the gizmo will use the owner as the reference node.
-var referenceNode : Node = null
+
+## Used by the gizmo's canvas to position itself based on the gizmo's position calculations. Automatically called by the plugin.
+func position_canvas() -> void:
+    canvas.position = Vector2.ZERO
+    canvas.rotation = 0.0
+    canvas.scale = Vector2.ONE
+
+## Emitted when the gizmo's owner variable is changed.
+signal owner_changed( newOwner : Object)
+## Reference to the object that the gizmo get's all that contain's all the Undo Redo functions and also used as the reference node 
+## if referenceNode is not set and the owner is a CanvasItem. Set automatically by the plugin.
+var owner = null :
+    set(inp):
+        owner = inp
+        owner_changed.emit( owner )
+## Emitted when the gizmo's owner variable is changed.
+signal referenceNode_changed( newReferenceNode : Node )
+## An Optional variable that, when set, makes the gizmo use the position and rotation of the given node as a reference instead of the 
+## owner. If the this variable is unset and the owner is a CanvasItem, the gizmo will use the owner as the reference node.
+var referenceNode : Object = null :
+    set(inp):
+        if inp == null or inp is Node or inp is Gizmo2D_RefNode:
+            referenceNode = inp
+        else:
+            printerr( "Reference node for gizmo be a Node, Gizmo2D_RefNode, or null." )
+            referenceNode = null
+        referenceNode_changed.emit( referenceNode )
+        on_var_changed()
+
 
 ## What the canvas calls to draw the gizmo.
 func draw_gizmo() -> void:
@@ -31,20 +56,17 @@ func draw_gizmo() -> void:
         on_var_changed()
 
 @export_subgroup( "UndoRedo Callbacks" )
-## [color=red]-Required-[/color] Name of the method called from the owner node when attempting to undo or cancel the gizmo's action.[br]
+## [color=red]-Required-[/color] Name of the method called from the owner node when attempting to undo or cancel the gizmo's action. This may seem like a weird way to do this but I believe it's the way that plays best with the Godot editor's undo/redo system.[br]
 ## Signature: [code]func example_function( argsDict : Dictionary ): -> void[/code][br]
 ## The structure of the Dictionary passed to the undo function will vary based on the gizmo and will be noted in their class description.
 @export var onUndo : String = ''
-## [color=red]-Required-[/color] Name of the method called from the owner node when attempting to redo the gizmo's action.[br]
+## [color=red]-Required-[/color] Name of the method called from the owner node when attempting to redo the gizmo's action. This may seem like a weird way to do this but I believe it's the way that plays best with the Godot editor's undo/redo system.[br]
 ## Signature: [code]func example_function( argsDict : Dictionary ): -> void[/code][br]
 ## The structure of the Dictionary passed to the redo function will vary based on the gizmo and will be noted in their class description.
 @export var onRedo : String = ''
 ## [color=purple]-Advanced-[/color] If defined, the method with this name will completely override the default undo/redo system of the plugin for the gizmo.[br]
 ## Signature: [code]func example_function(): -> void[/code]
 @export var overrideUndoRedo : String = ''
-## [color=orange]-Optional-[/color] If defined, the method with this name will override the default cancel action of the gizmo ( onUndo ).[br]
-## Signature: [code]func example_function( gizmo : JGizmo ): -> void[/code]
-# @export var overrideCancel : String = ''
 
 ## sets up the undo redo actions for the gizmo.
 func _setup_undo_redo( redoArgs : Dictionary, undoArgs : Dictionary, actionName : String = 'Gizmo Action' ) -> bool:
@@ -100,6 +122,12 @@ func setup_as_subgizmo( ownerGizmo : J_Gizmo ) -> void:
     owner.canvas_changed.connect( _set_canvas )
     canvas = ownerGizmo.canvas
     referenceNode = ownerGizmo.get_ref_node()
+    owner.owner_changed.connect( update_subgizmo_reference_node.unbind(1) )
+    owner.referenceNode_changed.connect( update_subgizmo_reference_node.unbind(1) )
+
+
+func update_subgizmo_reference_node() -> void:
+    referenceNode = owner.get_ref_node()
 
 ## As the name suggests.
 func _set_canvas( newCanvas : Gizmo_Canvas ) -> void:
@@ -125,7 +153,7 @@ func _owner_method_exists( func_name : String ) -> bool:
     return( false )
 
 ## Helper function to that checks if the reference node is set, and if not, returns the owner to be used as the reference node.
-func get_ref_node() -> Node:
+func get_ref_node() -> Object:
     if referenceNode == null:
         return( owner )
     
@@ -146,5 +174,6 @@ func get_local_mouse_position() -> Vector2:
 ## gets the viewport that the gizmo is being drawn on.
 func get_target_viewport() -> Viewport:
     return EditorInterface.get_editor_viewport_2d()
+
 
 #endregion

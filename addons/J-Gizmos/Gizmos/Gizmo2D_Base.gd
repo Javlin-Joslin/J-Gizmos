@@ -17,21 +17,20 @@ func position_canvas() -> void:
     else:
         canvas.rotation = 0.0
 
+
 #region Position Calculations
-
-
 
 const POS_INDEX : int = 0
 const ROT_INDEX : int = 1
 ## Gets the global position and rotation of the gizmo's owner.[br]
-## Format : [ global_position, global_rotation ] | Shorthands : OWNER_POS_INDEX, OWNER_ROT_INDEX [br]
+## Format : [ global_position, global_rotation ] | Shorthands : POS_INDEX, ROT_INDEX [br]
 ## Returns an empty array if the owner is not of type Node2D or Control, and prints an error to the console.
 func get_ref_pos_and_rot() -> Array:
     var positionalNode : Node = get_ref_node()
 
     if positionalNode is Node2D:
         return([
-            positionalNode.get_viewport_transform() * positionalNode.global_position,
+            positionalNode.get_global_position(),
             positionalNode.global_rotation
         ])
     
@@ -46,9 +45,9 @@ func get_ref_pos_and_rot() -> Array:
         return( [] )
 
 ## The owner can only be returned as the reference node if it is a CanvasItem, otherwise an error is printed and null is returned.
-func get_ref_node() -> Node:
+func get_ref_node() -> Object:
     if referenceNode != null:
-        if referenceNode is CanvasItem:
+        if referenceNode is CanvasItem or referenceNode is Gizmo2D_RefNode:
             return( referenceNode )
         else:
             printerr( "Positional reference node for J_Gizmo2D is not a CanvasItem. Using owner as reference node." )

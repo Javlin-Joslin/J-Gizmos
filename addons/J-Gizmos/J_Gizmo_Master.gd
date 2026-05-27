@@ -14,6 +14,8 @@ func _enter_tree():
     
     EditorInterface.get_selection().selection_changed.connect( _on_selection_changed )
 
+
+#region Static Utils
 static func get_editor_window() -> Window:
     return( EditorInterface.get_base_control().get_window() )
 
@@ -25,12 +27,16 @@ static func get_master() -> J_Gizmo_Master:
     printerr( 'Error: No J_Gizmo_Master found in the scene tree. This should never happen, make sure the J-Gizmos plugin is enabled.' )
     return( null )
 
+static func get_frame_duration() -> float:
+    return( 1.0 / Engine.get_frames_per_second() )
 
+#endregion
 
 #region Input
 func _on_selection_changed():
     for canvas in _canvases:
-        # Must clear the canvas's reference to the gizmo before freeing it to avoid errors from the canvas trying to call functions on the gizmo after it's been freed.
+        # Must clear the canvas's reference to the gizmo before freeing it to avoid errors from the canvas trying to call
+        # functions on the gizmo after it's been freed.
         canvas.ownerGizmo = null
         canvas.queue_free()
     
@@ -38,7 +44,7 @@ func _on_selection_changed():
     _gizmos.clear()
     grabbedGizmo = null
 
-    var selection : Array = get_editor_interface().get_selection().get_selected_nodes()
+    var selection : Array = EditorInterface.get_selection().get_selected_nodes()
 
     for node in selection:
         if node.get('gizmos'):
@@ -46,16 +52,17 @@ func _on_selection_changed():
                 if gizmo == null:
                     continue
                 
+                gizmo.owner = node
                 gizmo.canvas = Gizmo_Canvas.new()
                 gizmo.canvas.ownerGizmo = gizmo
                 gizmo.get_target_viewport().add_child( gizmo.canvas )
-                gizmo.owner = node
                 _canvases.append( gizmo.canvas )
 
                 _gizmos.append( gizmo )
 
 func _handles( obj ):
-    # Pause for a frame to allow the _on_selection_changed function to finish running and populate the _gizmos array before checking if there are any gizmos to handle.
+    # Pause for a frame to allow the _on_selection_changed function to finish running and populate the _gizmos array before 
+    # checking if there are any gizmos to handle.
     await get_tree().process_frame
     if _gizmos.size() > 0:
         return(true)
