@@ -2,7 +2,6 @@
 extends J_Gizmo
 class_name J_Gizmo2D
 
-
 @export var useReferenceRotation : bool = true :
     set(inp):
         useReferenceRotation = inp

@@ -2,14 +2,15 @@
 @icon('res://addons/J-Gizmos/Icons/J_Gizmo2D_Handle.svg')
 extends J_Gizmo2D
 ## A simple gizmo that can be positioned around the owner's local space and used as a handle to perform tasks via the gizmo's many [code]Signals[/code] and undo/redo callbacks.[br]
-## undo callback arguement Dict: [code]{ oldPosition : Vector2, newPosition : Vector2 }[/code][br]
-## redo callback arguement Dict: [code]{ oldPosition : Vector2, newPosition : Vector2 }[/code][br]
+## undo callback arguement Dict: [code]{ oldPosition : Vector2, newPosition : Vector2, totalDragVector : Vector2 }[/code][br]
+## redo callback arguement Dict: [code]{ oldPosition : Vector2, newPosition : Vector2, totalDragVector : Vector2 }[/code][br]
 class_name J_Gizmo2D_Handle
 
 #region Quick Setup
 ## Helper function that connects the [code]on_drag[/code] signal to the given function and sets the required function names for the gizmo's undo and redo actions. Used to simplify setting up the gizmo after creating it.[br]
-## undo callback arguement Dict: [code]{ oldPosition : Vector2, newPosition : Vector2 }[/code][br]
-## redo callback arguement Dict: [code]{ oldPosition : Vector2, newPosition : Vector2 }[/code][br]
+## on_drag Function Arguements: [code](dragPos : Vector2, dragVector : Vector2, this_gizmo : J_Gizmo2D_Handle)[/code][br]
+## undo callback arguement Dict: [code]{ oldPosition : Vector2, newPosition : Vector2, totalDragVector : Vector2 }[/code][br]
+## redo callback arguement Dict: [code]{ oldPosition : Vector2, newPosition : Vector2, totalDragVector : Vector2 }[/code][br]
 func quick_setup( dragFunc : Callable, undoFuncName : String, redoFuncName : String, givenActionName : String = 'Gizmo Action' ) -> void:
     on_drag.connect( dragFunc )
     onUndo = undoFuncName
@@ -19,14 +20,11 @@ func quick_setup( dragFunc : Callable, undoFuncName : String, redoFuncName : Str
 #endregion
 
 #region Visual Variables
-## Handle display options. [br]
-## - [code]CIRCLE[/code]: A simple circle. [br]
-## - [code]SQUARE[/code]: A simple square. [br]
-## - [code]CUSTOM[/code]: Draws nothing, instead emitting the [code]on_custom_draw[/code] signal to allow for completely custom drawing.
+## Handle display options.
 enum HANDLE_VISUAL {
-    CIRCLE,
-    SQUARE,
-    CUSTOM
+    CIRCLE, #A simple circle.
+    SQUARE, #A simple square.
+    CUSTOM #Draws nothing, instead emitting the [code]on_custom_draw[/code] signal to allow for completely custom drawing.
 }
 ## Dictates the visual style of the gizmo.
 @export var handleVisual : HANDLE_VISUAL = HANDLE_VISUAL.CIRCLE :
@@ -48,8 +46,8 @@ enum HANDLE_VISUAL {
 var _displayPosition : Vector2 = Vector2.ZERO
 ## Used to store the gizmo's position when it is grabbed, for use in undo/redo operations. Updated automatically.
 var _oldPosition : Vector2 = Vector2.ZERO
-## Used while dragging the gizmo for calculating the drag vector returned by the on_drag signal. Updated automatically.
-var _oldDragPosition : Vector2 = Vector2.ZERO
+## Used to store the total drag vector since the gizmo was grabbed, for use in undo/redo operations. Updated automatically.
+var _totalDragVector : Vector2 = Vector2.ZERO
 
 ## The size of the gizmo's handle.
 @export var gizmoSize : float = 5.0 :
@@ -105,9 +103,13 @@ var _state : STATES = STATES.DEFAULT
 signal on_grab( this_gizmo : J_Gizmo2D_Handle )
 ## Emitted when the gizmo is released after being grabbed.
 signal on_release( this_gizmo : J_Gizmo2D_Handle )
-## Emitted when the Gizmo is dragged.
+## Emitted when the Gizmo is dragged. [br]
+## Note that the drag position and vector emitted with the signal are virtual and the actual position of the gizmo 
+## won't change without you changing it yourself. This is because the gizmo doesn't assume how you want to use
+## it, so it just emits the change and it's up to you to apply it how you see fit.
 signal on_drag( dragPos : Vector2, dragVector : Vector2, this_gizmo : J_Gizmo2D_Handle )
-## Emitted when a drag is conceled by right clicking. If nothing is connected to this signal the plugin will run the undo function to return the gizmo to its original position.
+## Emitted when a drag is conceled by right clicking. If nothing is connected to this signal the plugin will run the 
+## undo function to return the gizmo to its original position.
 signal on_drag_cancel( this_gizmo : J_Gizmo2D_Handle )
 ## Emitted when the mouse starts hovering over the gizmo.
 signal on_hover( this_gizmo : J_Gizmo2D_Handle )
@@ -145,7 +147,7 @@ func _on_canvas_gui_input(event) -> bool:
             elif event is InputEventMouseButton:
                 if mouseInside and event.button_index == MouseButton.MOUSE_BUTTON_LEFT and event.pressed:
                     _oldPosition = position
-                    _oldDragPosition = position
+                    _totalDragVector = Vector2.ZERO
                     plugin.grabbedGizmo = self
                     _update_state( STATES.GRABBED, on_grab )
                     return( true )
@@ -153,10 +155,11 @@ func _on_canvas_gui_input(event) -> bool:
         STATES.GRABBED:
             mouseInside = true
             if event is InputEventMouseMotion:
-                var dragPosition : Vector2 = get_local_mouse_position() / get_ref_node().get_global_transform().get_scale()
+                var dragPosition : Vector2 = get_local_mouse_position()
+                var dragDelta : Vector2 = dragPosition - position
 
-                on_drag.emit( dragPosition, dragPosition - _oldDragPosition, self )
-                _oldDragPosition = dragPosition
+                on_drag.emit( dragPosition, dragDelta, self )
+                _totalDragVector += dragDelta
                 refresh_canvas()
                 return( true )
             
@@ -168,7 +171,7 @@ func _on_canvas_gui_input(event) -> bool:
                         if on_drag_cancel.has_connections():
                             on_drag_cancel.emit( self )
                         else:
-                            if not _try_using( onUndo, [ { 'oldPosition' : _oldPosition, 'newPosition' : position } ] ):
+                            if not _try_using( onUndo, [ { 'oldPosition' : _oldPosition, 'newPosition' : get_local_mouse_position() } ] ):
                                 if owner.get('name') != null:
                                     printerr( 'Warning: No undo function defined for gizmo in ' , owner.name,'.' )
                                 else:
@@ -186,12 +189,11 @@ func _on_canvas_gui_input(event) -> bool:
                         _update_state( STATES.DEFAULT, on_release )
                         plugin.grabbedGizmo = null
                         _setup_undo_redo( 
-                            { 'oldPosition' : _oldPosition, 'newPosition' : position }, 
-                            { 'oldPosition' : _oldPosition, 'newPosition' : position }, 
+                            { 'oldPosition' : _oldPosition, 'newPosition' : get_local_mouse_position(), 'totalDragVector' : _totalDragVector },
+                            { 'oldPosition' : _oldPosition, 'newPosition' : get_local_mouse_position(), 'totalDragVector' : _totalDragVector },
                             actionName 
                         )
-                            
-
+                        
                         return( true )
     
     return( false )
@@ -264,5 +266,6 @@ func _update_state( newState : STATES, emit_signal = null) -> void:
 
 func get_local_mouse_position() -> Vector2:
     var mousePos : Vector2 = super.get_local_mouse_position()
+    var nodeScale : Vector2 = get_ref_node().get_global_transform().get_scale()
 
-    return( mousePos - (gizmoOffsetVector*offset)/get_viewport_transform().x.x )
+    return( (mousePos - (gizmoOffsetVector*offset)/get_viewport_transform().x.x) / nodeScale )
