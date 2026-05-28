@@ -1,4 +1,5 @@
 @tool
+@icon('res://addons/J-Gizmos/Icons/J_Gizmo2D_Rect.svg')
 extends J_Gizmo2D
 
 ## A rectangular gizmo with optional handles on each corner that can be used for resizing or other such tasks via the gizmo's many [code]Signals[/code] and undo/redo callbacks.[br]
@@ -43,7 +44,7 @@ func quick_set_handles( TL : bool, TR : bool, BL : bool, BR : bool ) -> void:
 ## Virtual Rect used for calculations.
 var _modifiedRect : Rect2 = Rect2( Vector2.ZERO, rect.size )
 ## Virtual Rect used for storing the previous rect when dragging handles for undo/redo purposes.
-var oldRect : Rect2 = Rect2( Vector2.ZERO, rect.size )
+var _oldRect : Rect2 = Rect2( Vector2.ZERO, rect.size )
 
 #endregion
 
@@ -140,7 +141,10 @@ var oldRect : Rect2 = Rect2( Vector2.ZERO, rect.size )
 #region Signals
 ## Emitted when the gizmo is drawn, after the preview rectangle.
 signal on_draw( canvas : Gizmo_Canvas, this_gizmo : J_Gizmo2D_Rect )
-## Emitted when the gizmo's rect is changed.
+## Emitted when the gizmo's rect is changed.[br]
+## Note that the offset and size vectors emitted with the signal are virtual and the actual rect of the gizmo won't
+## change without you changing it yourself. This is because the gizmo doesn't assume how you want to use it, so it 
+## just emits the change and it's up to you to apply it how you see fit.
 signal on_handle_drag( offset : Vector2, size : Vector2, this_gizmo : J_Gizmo2D_Rect )
 ## Emitted when the gizmo's rect change is canceled.
 signal on_cancel_rect_change( this_gizmo : J_Gizmo2D_Rect )
@@ -264,15 +268,15 @@ func _on_canvas_gui_input( event ) -> bool:
 
 ## Called by the handle subgizmos when they are grabbed. Used to store the current rect for undo/redo purposes and emit the [code]on_handle_grab[/code] signal.
 func _on_handle_grabbed( handle : J_Gizmo2D_Handle ) -> void:
-    oldRect = rect
+    _oldRect = rect
     on_handle_grab.emit( handle, self )
 
 ## Called by the handle subgizmos when they are released. Used to emit the [code]on_handle_release[/code] signal and setup the undo/redo actions for the handle drag.
 func _on_handle_released( handle : J_Gizmo2D_Handle ) -> void:
     on_handle_release.emit( handle, self )
     _setup_undo_redo( 
-        { 'oldSize' : oldRect.size, 'newSize' : rect.size, 'newOffset' : _modifiedRect.position - rect.position },
-        { 'oldSize' : oldRect.size, 'newSize' : rect.size, 'newOffset' : _modifiedRect.position - rect.position }, 
+        { 'oldSize' : _oldRect.size, 'newSize' : rect.size, 'newOffset' : _modifiedRect.position - rect.position },
+        { 'oldSize' : _oldRect.size, 'newSize' : rect.size, 'newOffset' : _modifiedRect.position - rect.position }, 
         actionName 
     )
 
@@ -310,10 +314,11 @@ func _on_handle_drag( dragPos : Vector2, dragVector : Vector2, handle : J_Gizmo2
     _modifiedRect = _calc_handle_mod( _modifiedRect, xType, dragPos, 0 )
     _modifiedRect = _calc_handle_mod( _modifiedRect, yType, dragPos, 1 )
 
+    var posOffset : Vector2 = _modifiedRect.position - rect.position
     rect.size = _modifiedRect.size
 
     _position_gizmos()
-    on_handle_drag.emit( _modifiedRect.position - rect.position, rect.size, self )
+    on_handle_drag.emit( posOffset, rect.size, self )
     
 
 ## Calculates how the handle subgizmo modifies the given rect on the given axis. Used by the _on_handle_drag function.
@@ -342,7 +347,7 @@ func _on_cancel( handle : J_Gizmo2D_Handle ) -> void:
     if on_cancel_rect_change.has_connections():
         on_cancel_rect_change.emit( self )
 
-    elif not _try_using( onUndo, [ { 'oldSize' : oldRect.size, 'newSize' : _modifiedRect.size, 'newOffset' : _modifiedRect.position } ] ):
+    elif not _try_using( onUndo, [ { 'oldSize' : _oldRect.size, 'newSize' : _modifiedRect.size, 'newOffset' : _modifiedRect.position } ] ):
         if owner.get('name') != null:
             printerr( 'Warning: No undo function defined for gizmo in ' , owner.name,'.' )
         else:

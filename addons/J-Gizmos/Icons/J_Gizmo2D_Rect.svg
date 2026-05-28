@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" fill="none">
+
+    <!-- Rectangle outline -->
+    <rect x="10" y="10" width="44" height="44" stroke="#FF69B4" stroke-width="7" fill="none"/>
+
+    <!-- Corner handles -->
+    <rect x="4"  y="4"  width="12" height="12" fill="#FFC0CB"/>
+    <rect x="48" y="4"  width="12" height="12" fill="#FFC0CB"/>
+    <rect x="4"  y="48" width="12" height="12" fill="#FFC0CB"/>
+    <rect x="48" y="48" width="12" height="12" fill="#FFC0CB"/>
+
+</svg>
