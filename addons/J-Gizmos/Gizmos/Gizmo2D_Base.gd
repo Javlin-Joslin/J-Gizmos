@@ -55,6 +55,7 @@ func get_ref_node() -> Object:
         return( owner )
 
 #region Utils
-## Helper function to get the final transform of the viewport the gizmo is being drawn on. Used for various calculations, such as getting the mouse position in relation to the gizmo.
+## Helper function to get the final transform of the viewport the gizmo is being drawn on. Used for various calculations, such as getting 
+## the mouse position in relation to the gizmo.
 func get_viewport_transform() -> Transform2D:
     return( EditorInterface.get_editor_viewport_2d().get_final_transform() )
