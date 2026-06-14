@@ -171,7 +171,7 @@ func _on_canvas_gui_input(event) -> bool:
                         if on_drag_cancel.has_connections():
                             on_drag_cancel.emit( self )
                         else:
-                            if not _try_using( onUndo, [ { 'oldPosition' : _oldPosition, 'newPosition' : get_local_mouse_position() } ] ):
+                            if not _try_using( onUndo, [ { 'oldPosition' : _oldPosition, 'newPosition' : get_local_mouse_position(), 'totalDragVector' : _totalDragVector } ] ):
                                 if owner.get('name') != null:
                                     printerr( 'Warning: No undo function defined for gizmo in ' , owner.name,'.' )
                                 else:
