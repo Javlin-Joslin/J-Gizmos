@@ -2,9 +2,14 @@
 extends EditorPlugin
 class_name J_Gizmo_Master
 
+static var SETTING_KEY_FORMAT := "addons/j-gizmos/%s/%s"
 const MASTER_NODE_NAME : String = 'J_Gizmo_Master'
 var _gizmos : Array = []
 var _canvases : Array = []
+var _all_settings : Dictionary = {
+    "handle": J_Gizmo2D_Handle.SETTINGS,
+    "rect": J_Gizmo2D_Rect.SETTINGS,
+}
 var grabbedGizmo : J_Gizmo = null
 
 func _enter_tree():
@@ -13,7 +18,41 @@ func _enter_tree():
     window.set_meta( MASTER_NODE_NAME, self )
     
     EditorInterface.get_selection().selection_changed.connect( _on_selection_changed )
+    _register_project_settings()
 
+#region Project settings
+static func get_setting_name(typ: String, name: String) -> String:
+    return SETTING_KEY_FORMAT % [typ, name]
+
+func _register_project_settings() -> void:
+    for name in _all_settings:
+        var settings = _all_settings[name]
+        for setting in settings:
+            var setting_key = SETTING_KEY_FORMAT % [name, setting]
+            if not ProjectSettings.has_setting(setting_key):
+                ProjectSettings.set_setting(setting_key, settings[setting].default)
+
+            ProjectSettings.add_property_info({
+                "name": setting_key,
+                "type": settings[setting].type,
+                "hint": settings[setting].hint,
+                "hint_string": settings[setting].hint_string,
+                "default": settings[setting].default
+            })
+            ProjectSettings.set_initial_value(setting_key, settings[setting].default)
+
+func _remove_project_settings() -> void:
+    for name in _all_settings:
+        var settings = _all_settings[name]
+        for setting in settings:
+            var setting_key = SETTING_KEY_FORMAT % [name, setting]
+            ProjectSettings.clear(setting_key)
+    ProjectSettings.save()
+
+func _disable_plugin() -> void:
+    _remove_project_settings()
+
+#endregion
 
 #region Static Utils
 static func get_editor_window() -> Window:

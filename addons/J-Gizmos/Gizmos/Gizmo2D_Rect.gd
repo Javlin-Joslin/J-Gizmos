@@ -29,6 +29,26 @@ func quick_set_handles( TL : bool, TR : bool, BL : bool, BR : bool ) -> void:
 #endregion
 
 #region Settings Variables
+static var SETTINGS := {
+    "draw": {
+        "type": TYPE_BOOL,
+        "hint": null,
+        "hint_string": null,
+        "default": true
+    },
+    "color": {
+        "type": TYPE_COLOR,
+        "hint": null,
+        "hint_string": null,
+        "default": Color.HOT_PINK
+    },
+    "thickness": {
+        "type": TYPE_FLOAT,
+        "hint": PROPERTY_HINT_RANGE,
+        "hint_string": "0.1,20,0.1,or_greater",
+        "default": 1.0
+    }
+}
 
 @export var rect : Rect2 = Rect2( Vector2.ZERO, Vector2( 30.0, 30.0 ) ) :
     set(inp):
@@ -50,12 +70,12 @@ var _oldRect : Rect2 = Rect2( Vector2.ZERO, rect.size )
 
 #region Display Rect Variables
 ## If true, the gizmo will draw a preview rectangle representing the gizmo's area.
-@export var drawRect : bool = true : 
+@export var drawRect : bool = ProjectSettings.get_setting(J_Gizmo_Master.get_setting_name("rect", "draw"), SETTINGS["draw"].default) : 
     set(inp):
         drawRect = inp
         on_var_changed()
 ## The color of the preview rectangle drawn when [code]drawRect[/code] is set to true.
-@export var rectColor : Color = Color.HOT_PINK :
+@export var rectColor : Color = ProjectSettings.get_setting(J_Gizmo_Master.get_setting_name("rect", "color"), SETTINGS["color"].default) :
     set(inp):
         rectColor = inp
         on_var_changed()
@@ -63,7 +83,7 @@ var _oldRect : Rect2 = Rect2( Vector2.ZERO, rect.size )
             if gizmo != null:
                 gizmo.rectColor = rectColor
 ## The thickness of the preview rectangle drawn when [code]drawRect[/code] is set to true.
-@export var rectThickness : float = 1.0 :
+@export var rectThickness : float = ProjectSettings.get_setting(J_Gizmo_Master.get_setting_name("rect", "thickness"), SETTINGS["thickness"].default) :
     set(inp):
         rectThickness = inp
         on_var_changed()
@@ -94,7 +114,7 @@ var _oldRect : Rect2 = Rect2( Vector2.ZERO, rect.size )
 
 @export_group( "Handle Visuals" )
 ## Size of this gizmo's handles.
-@export var handleSize : float = 5.0 :
+@export var handleSize : float = ProjectSettings.get_setting(J_Gizmo_Master.get_setting_name("handle", "size"), J_Gizmo2D_Handle.SETTINGS["size"].default) :
     set(inp):
         handleSize = inp
         on_var_changed()
@@ -118,7 +138,7 @@ var _oldRect : Rect2 = Rect2( Vector2.ZERO, rect.size )
             if gizmo != null:
                 gizmo.gizmoOutlineActive = handleActiveOutlineSize
 ## How far from the corner the handles will be displayed.
-@export var handleOffset : float = 14.0 :
+@export var handleOffset : float = ProjectSettings.get_setting(J_Gizmo_Master.get_setting_name("handle", "offset"), J_Gizmo2D_Handle.SETTINGS["offset"].default) :
     set(inp):
         handleOffset = inp
         on_var_changed()
@@ -126,7 +146,7 @@ var _oldRect : Rect2 = Rect2( Vector2.ZERO, rect.size )
             if gizmo != null:
                 gizmo.offset = handleOffset
 ## Visual style of this gizmo's handles. If set to [code]HANDLE_VISUAL.CUSTOM[/code], the [code]on_handle_draw[/code] signal will be emitted when drawing the handles, allowing you to draw custom visuals for the handles via the [code]on_custom_draw[/code] signal.
-@export var handleVisual : J_Gizmo2D_Handle.HANDLE_VISUAL = J_Gizmo2D_Handle.HANDLE_VISUAL.CIRCLE :
+@export var handleVisual : J_Gizmo2D_Handle.HANDLE_VISUAL = ProjectSettings.get_setting(J_Gizmo_Master.get_setting_name("handle", "visual"), J_Gizmo2D_Handle.SETTINGS["visual"].default) :
     set(inp):
         handleVisual = inp
         on_var_changed()
