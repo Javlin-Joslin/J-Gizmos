@@ -20,6 +20,39 @@ func quick_setup( dragFunc : Callable, undoFuncName : String, redoFuncName : Str
 #endregion
 
 #region Visual Variables
+static var SETTINGS := {
+    "visual": {
+        "type": TYPE_INT,
+        "hint": PROPERTY_HINT_ENUM,
+        "hint_string": ",".join(HANDLE_VISUAL.keys()),
+        "default": HANDLE_VISUAL.CIRCLE
+    },
+    "size": {
+        "type": TYPE_FLOAT,
+        "hint": PROPERTY_HINT_RANGE,
+        "hint_string": "0.1,50,0.1,or_greater",
+        "default": 5
+    },
+    "offset": {
+        "type": TYPE_FLOAT,
+        "hint": PROPERTY_HINT_RANGE,
+        "hint_string": "0,50,2,or_greater",
+        "default": 14.0
+    },
+    "color1": {
+        "type": TYPE_COLOR,
+        "hint": null,
+        "hint_string": null,
+        "default": Color.HOT_PINK
+    },
+    "color2": {
+        "type": TYPE_COLOR,
+        "hint": null,
+        "hint_string": null,
+        "default": Color.PINK
+    }
+}
+
 ## Handle display options.
 enum HANDLE_VISUAL {
     CIRCLE, #A simple circle.
@@ -27,7 +60,7 @@ enum HANDLE_VISUAL {
     CUSTOM #Draws nothing, instead emitting the [code]on_custom_draw[/code] signal to allow for completely custom drawing.
 }
 ## Dictates the visual style of the gizmo.
-@export var handleVisual : HANDLE_VISUAL = HANDLE_VISUAL.CIRCLE :
+@export var handleVisual : HANDLE_VISUAL = ProjectSettings.get_setting(J_Gizmo_Master.get_setting_name("handle", "visual"), SETTINGS["visual"].default) :
     set(inp):
         handleVisual = inp
         on_var_changed()
@@ -50,7 +83,7 @@ var _oldPosition : Vector2 = Vector2.ZERO
 var _totalDragVector : Vector2 = Vector2.ZERO
 
 ## The size of the gizmo's handle.
-@export var gizmoSize : float = 5.0 :
+@export var gizmoSize : float = ProjectSettings.get_setting(J_Gizmo_Master.get_setting_name("handle", "size"), SETTINGS["size"].default) :
     set(inp):
         gizmoSize = inp
         on_var_changed()
@@ -65,17 +98,17 @@ var _totalDragVector : Vector2 = Vector2.ZERO
         gizmoOutlineActive = min( inp, gizmoSize )
         on_var_changed()
 ## The gizmo's main (internal) color.
-@export var gizmoColor1 : Color = Color.HOT_PINK :
+@export var gizmoColor1 : Color = ProjectSettings.get_setting(J_Gizmo_Master.get_setting_name("handle", "color1"), SETTINGS["color1"].default) :
     set(inp):
         gizmoColor1 = inp
         on_var_changed()
 ## The gizmo's outline (external) color.
-@export var gizmoColor2 : Color = Color.PINK :
+@export var gizmoColor2 : Color = ProjectSettings.get_setting(J_Gizmo_Master.get_setting_name("handle", "color2"), SETTINGS["color2"].default) :
     set(inp):
         gizmoColor2 = inp
         on_var_changed()
 ## The distance the gizmo is drawn from it's actual position. The Direction of the offset is determined by [code]gizmoOffsetVector[/code].
-@export var offset : float = 14.0 : 
+@export var offset : float = ProjectSettings.get_setting(J_Gizmo_Master.get_setting_name("handle", "offset"), SETTINGS["offset"].default) : 
     set(inp):
         offset = inp
         on_var_changed()
